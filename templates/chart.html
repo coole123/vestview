@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Vestview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='./bower_components/chartist/dist/chartist.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bower_components/bootstrap/dist/css/bootstrap.min.css') }}">
+
+    <!-- This is the CSS file for the chart *ONLY*
+         All relevant fields have a comment preceded with "!!"
+    -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/highcharts.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chart.css') }}">
+</head>
+
+<body>
+    <div class="nav-content">
+        <nav class="navbar navbar-default">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="/">
+                <i class="glyphicon glyphicon-search"></i> Back to Search
+              </a>
+            </div>
+             <!-- hiding this for now <ul class="nav navbar-nav navbar-right">
+                <li><a href="#">Register</a></li>
+               <li class="white-button"><a href="#">Sign In</a></li>
+               <li><img class='logo' src={{ url_for('static', filename='imgs/vestview-logo.png') }}/></li>
+              </ul> -->
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+    </div>
+
+    <!--Begin news/tweets container-->
+    <!-- highstock chart <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div id="stockchart"></div>
+            </div>
+        </div>
+    </div> -->
+
+    <script src={{ url_for('static', filename='./bower_components/jquery/dist/jquery.min.js') }}></script>
+    <script src={{ url_for('static', filename='./bower_components/bootstrap/dist/js/bootstrap.min.js') }}></script>
+    <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+
+    <!-- <script src={{ url_for('static', filename='./bower_components/highcharts/js/highstock.js') }}></script> -->
+    <script src={{ url_for('static', filename='js/chart.js') }}></script>
+
+    <script type="text/javascript">
+      var symbol = '{{symbol}}';
+      var data = {{data | tojson}};
+      var tweets = {{tweets | safe}};
+      var articles = {{articles | tojson}};
+    </script>
+</body>
+</html>

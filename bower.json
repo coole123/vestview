@@ -1,0 +1,21 @@
+
+{
+  "name": "vestview",
+  "version": "0.0.0",
+  "main": "app.py",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "chartist": "^0.10.1",
+    "bootstrap": "^3.2.0",
+    "jquery": "^2.1.1",
+    "jquery-ui": "^1.12.1"
+  }
+}

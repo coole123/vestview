@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<html>
+<head>
+    <title>Vestview</title>
+
+<!--For autofill-->
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bower_components/bootstrap/dist/css/bootstrap.min.css') }}">
+    <!-- Optional theme -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bower_components/bootstrap/dist/css/bootstrap-theme.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bower_components/jquery-ui/themes/ui-lightness/jquery-ui.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/search.css') }}">
+
+</head>
+
+<body>
+
+	<div class="top-content">
+		<nav class="navbar navbar-default">
+		  <div class="container-fluid">
+		    <!-- Brand and toggle get grouped for better mobile display -->
+		    <div class="navbar-header">
+		      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+		        <span class="sr-only">Toggle navigation</span>
+		        <span class="icon-bar"></span>
+		        <span class="icon-bar"></span>
+		        <span class="icon-bar"></span>
+		      </button>
+		      <a class="navbar-brand" href="#">
+		      	<img class='logo' src={{ url_for('static', filename='imgs/vestview-logo.png') }}/>
+		      </a>
+		    </div>
+		      <!--<ul class="nav navbar-nav navbar-right">
+		        <li><a href="#">Register</a></li>
+		       <li class="white-button"><a href="#">Sign In</a></li>
+		      </ul>-->
+		    </div><!-- /.navbar-collapse -->
+		  </div><!-- /.container-fluid -->
+		</nav>
+	</div>
+
+    <div class="main-content container">
+    	<div class="row center">
+        	<div class="text-center titles">
+        		<h1>Stock Search</h1>
+        		<h4 id="timestamp"></h3>
+        	</div>
+            <div id="custom-search-input">
+                <div class="input-group col-md-12">
+                    <input id="ticker-search" type="text" class="form-control input-lg" placeholder="" />
+                    <span class="input-group-btn">
+                        <button class="btn btn-lg btn-custom" id="search-btn" type="button">
+                            <i class="glyphicon glyphicon-search"></i>
+                        </button>
+                    </span>
+                </div>
+            </div>
+	<h3 class="info-text"> Start typing to search for stocks </h3>
+<!--Drop down menu begin
+
+			<div class='row item-height'>
+				<div class='dropdown item-height col-md-12'>
+					<div class='ticker-content'> AAPL </div>
+					<div class='compName-content'> item.name </div>
+					<div class='price'> item.price </div>
+				</div>
+			</div>
+
+Drop down menu end -->
+
+    		<div class='catchup col-md-8 col-md-offset-2'>
+				<button class='catchup-button col-md-8'>
+    				<div class='catchup-title'>Catch up on this month</div>
+    				<div class='catchup-text'>We'll run through the ups and downs of the market, showcasking what the internet is talking about each day of the week. </div>
+				</button>
+    		</div>
+    		<div class='today col-md-8 col-md-offset-2'>
+				<button class='today-button col-md-8'>
+    				<div class='today-title'>Just show today</div>
+    				<div class='today-text'>No worries, everyone's in a rush these days. We'll show you today's stocks alongside the top tweets and news stories of today. </div>
+				</button>
+			</div>
+    	</div>
+    </div>
+
+    <script src={{ url_for('static', filename='./bower_components/jquery/dist/jquery.min.js') }}></script>
+    <script src={{ url_for('static', filename='./bower_components/bootstrap/dist/js/bootstrap.min.js') }}></script>
+    <script src={{ url_for('static', filename='./bower_components/jquery-ui/jquery-ui.js') }}></script>
+    <script src={{ url_for('static', filename='js/search.js')}}></script>
+
+    <!-- Get dynamic data from flask application -->
+    <script type="text/javascript">
+        var data = {{autocompleteData | tojson}};
+    </script>
+
+</body>
+</html>
+
