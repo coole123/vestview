@@ -21,12 +21,10 @@ def root():
     autocomplete data
     """
     DJIA = ["MMM", "AXP", "AAPL", "BA", "CAT", "CVX", "CSCO", "KO", "DIS",
-                "DD", "XOM", "GE", "GS", "HD", "IBM", "INTC", "JNJ", "JPM",
-                "MCD", "MRK", "MSFT", "NKE", "PFE", "PG", "TRV", "UTX", "UNH",
-                "VZ", "V", "WMT"]
-
+            "DD", "XOM", "GE", "GS", "HD", "IBM", "INTC", "JNJ", "JPM",
+            "MCD", "MRK", "MSFT", "NKE", "PFE", "PG", "TRV", "UTX", "UNH",
+            "VZ", "V", "WMT"]
     data = get_quote(DJIA)
-
     return render_template("search.html", autocompleteData=data)
 
 @app.route("/chart/<symbol>")
@@ -39,14 +37,15 @@ def graph(symbol):
     yfm = YFMongo(DBS_NAME, COLLECTION_NAME)
     daily_data = yfm.get_stock_data(symbol)
     articles = get_news_data(symbol)
-    tweets = getTweets(symbol) # Returns list containing dicts of each tweet
+    timeseries = []
+    for daily in daily_data:
+        epoch = datetime.strptime(daily['date'], '%Y-%m-%d').timestamp()*1000
+        price = daily['values']['adjClose']
+        timeseries.append([epoch, price])
 
-    return render_template("chart.html", data=daily_data, articles=articles, tweets=tweets, symbol=symbol)
+    series = [{"name": symbol, "data": timeseries}]
+    title = {"text": symbol}
 
-
-@app.route("/graph")
-def test():
-    return render_template("graph.html")
-
+    return render_template('chart.html', series=series, title=title)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
