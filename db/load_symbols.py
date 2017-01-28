@@ -40,6 +40,8 @@ def insert_snp500_symbols(symbols):
         cur = conn.cursor()
         for chunk in chunks:
             cur.executemany(template_insert_str, chunk)
+
+
 if __name__ == "__main__":
     snp500_data = obtain_parse_wiki_snp500()
     insert_snp500_symbols(snp500_data)
