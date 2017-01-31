@@ -59,7 +59,6 @@ def _get_single_stock(ticker, start, end):
         List[tuple]:
             [ (Date, Open, High, Low, Close, Volume, AdjClose) ...]
     """
-    print("Calling single YFinance CSV API")
     YFINANCE_CSV_URL = ('http://ichart.finance.yahoo.com/table.csv?'
                        's=%s&a=%s&b=%s&c=%s&d=%s&e=%s&f=%s')
     req_url = YFINANCE_CSV_URL % (ticker, start[1]-1, start[2], start[0],
@@ -92,7 +91,6 @@ def _get_many_stocks(tickers, start, end):
         start (tuple) : (YYYY, MM, DD)
         end   (tuple) : (YYYY, MM, DD)
     """
-    print("Calling batch YFinance API")
     tickers = '(' + ','.join(['\"' + s.upper() + '"' for s in tickers]) + ')'
     start, end = "-".join(map(str, start)), "-".join(map(str, end))
     query = ('select * '
@@ -112,8 +110,8 @@ def _get_many_stocks(tickers, start, end):
     try:
         json_data = json.loads(resp.text)["query"]["results"]["quote"]
     except TypeError:
-        print("YahooFinance query returned nothing, this is probably due to"
-                         " an invalid date range (e.g. too big, or invalid)")
+        print("YahooFinance query returned nothing")
+        return
 
     # coerce JSON object to rows, to be used in _insert_single_daily_stock
     ticker_to_rows = defaultdict(list)
@@ -144,7 +142,6 @@ def _insert_single_daily_stock(data_vendor_id, symbol_id, daily_data):
     fill_str = ("%s, " * 11)[:-2]
     template_insert_str = ("INSERT INTO daily_price ({columns}) "
                           "VALUES ({vals})".format(columns=columns, vals=fill_str))
-
 
     with conn:
         cur = conn.cursor()
@@ -179,6 +176,9 @@ def insert_daily_snp500(start=None, end=None):
     elif dist.days <= 30:
         tickers = [ ticker for _, ticker in get_ids_and_tickers() ]
         data = _get_many_stocks(tickers, start, end)
+        if data is None:
+
+            return
         ticker_to_id = {ticker:id for id, ticker in get_ids_and_tickers() }
         for ticker in data:
             id = ticker_to_id[ticker]
