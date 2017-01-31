@@ -1,17 +1,37 @@
 from flask import Flask, render_template, jsonify
 from datetime import datetime
 import sys
-sys.path.append('lib')
-from yfinance import *
-from yfmongo import *
-from gfnews import *
-
-MONGODB_HOST = "localHost"
-DBS_NAME = "vestview"
-COLLECTION_NAME = "stocks"
-
+import MySQLdb as mdb
 
 app = Flask(__name__)
+
+def get_quotes(symbols):
+    """
+    Queries the public Yahoo Finance API for quotes.
+    """
+    # have to format symbols list to from ("SYM1", "SYM2", .... ,"SYMN")
+    symbols = "(" + ",".join(['\"' + s.upper() + '"' for s in symbols]) + ")"
+    query = 'SELECT * FROM yahoo.finance.quote WHERE symbol in {0}'.format(symbols)
+    payload = {
+        "q": query, 'format':'json', "env":'store://datatables.org/alltableswithkeys'
+    }
+    try:
+        resp = requests.get('http://query.yahooapis.com/v1/public/yql?', params=payload)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(e)
+        return
+    return json.loads(resp.text)["query"]["results"]["quote"]
+
+def get_autocomplete_data():
+    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
+    cursor = conn.cursor()
+    cursor.execute('SELECT ticker, name FROM symbol')
+    all_tickers = [ ticker for ticker, _ in cursor ]
+    company_names = { ticker:name for ticker, name in cursor }
+    quotes = get_quotes(all_tickers)
+    return [ {'name':company_names[d['symbol']], 'ticker':d['symbol'],
+              'price':float(d['LastTradePriceOnly'])} for d in quotes ]
 
 @app.route('/')
 def root():
@@ -20,11 +40,7 @@ def root():
     The data JSON obj is sent to the client side for real-time
     autocomplete data
     """
-    DJIA = ["MMM", "AXP", "AAPL", "BA", "CAT", "CVX", "CSCO", "KO", "DIS",
-            "DD", "XOM", "GE", "GS", "HD", "IBM", "INTC", "JNJ", "JPM",
-            "MCD", "MRK", "MSFT", "NKE", "PFE", "PG", "TRV", "UTX", "UNH",
-            "VZ", "V", "WMT"]
-    data = get_quote(DJIA)
+    data = []
     return render_template("search.html", autocompleteData=data)
 
 @app.route("/chart/<symbol>")
@@ -34,18 +50,8 @@ def graph(symbol):
     TODO: Add multiple stock functionality, make graph more interactive, and update
     graph.html template
     """
-    yfm = YFMongo(DBS_NAME, COLLECTION_NAME)
-    daily_data = yfm.get_stock_data(symbol)
-    articles = get_news_data(symbol)
-    timeseries = []
-    for daily in daily_data:
-        epoch = datetime.strptime(daily['date'], '%Y-%m-%d').timestamp()*1000
-        price = daily['values']['adjClose']
-        timeseries.append([epoch, price])
 
-    series = [{"name": symbol, "data": timeseries}]
-    title = {"text": symbol}
+    return render_template('chart.html', series=[], title={"text": symbol})
 
-    return render_template('chart.html', series=series, title=title)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -9,8 +9,6 @@ db_user = 'sec_user'
 db_pass = 'password'
 db_name = 'securities_master'
 db_port = 3306
-conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
-
 
 def parse_date_str(date_str):
     """
@@ -102,6 +100,7 @@ def insert_daily_snp500_wiki_views(start=None, end=None):
                           "VALUES ({vals})".format(columns=columns_str,
                                                    vals=fill_str))
 
+    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
     with conn:
         cur = conn.cursor()
         cur.executemany(template_insert_str, daily_views)
