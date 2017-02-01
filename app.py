@@ -1,5 +1,7 @@
 from flask import Flask, render_template, jsonify
 from datetime import datetime
+import requests
+import json
 import sys
 import MySQLdb as mdb
 
@@ -23,6 +25,7 @@ def get_quotes(symbols):
         return
     return json.loads(resp.text)["query"]["results"]["quote"]
 
+
 def get_autocomplete_data():
     conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
     cursor = conn.cursor()
@@ -30,8 +33,9 @@ def get_autocomplete_data():
     all_tickers = [ ticker for ticker, _ in cursor ]
     company_names = { ticker:name for ticker, name in cursor }
     quotes = get_quotes(all_tickers)
-    return [ {'name':company_names[d['symbol']], 'ticker':d['symbol'],
+    return [ {'label':company_names[d['symbol']], 'value':d['symbol'],
               'price':float(d['LastTradePriceOnly'])} for d in quotes ]
+
 
 @app.route('/')
 def root():
@@ -40,8 +44,36 @@ def root():
     The data JSON obj is sent to the client side for real-time
     autocomplete data
     """
-    data = []
+    data = get_autocomplete_data()
     return render_template("search.html", autocompleteData=data)
+
+
+def get_wiki_views_series(symbol):
+    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
+    cursor = conn.cursor()
+    cursor.execute(('SELECT dv.views_date, dv.views '
+                    'FROM symbol AS sym '
+                    'INNER JOIN '
+                    'daily_wiki_views AS dv '
+                    'ON sym.id = dv.symbol_id '
+                    'WHERE sym.ticker="{0}" '
+                    'ORDER BY dv.views_date ASC').format(symbol))
+
+    views = [ [date.timestamp() * 1000, int(views)] for date, views in cursor if views]
+    return views
+
+def get_daily_price_series(symbol):
+    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
+    cursor = conn.cursor()
+    cursor.execute(('SELECT dp.price_date, dp.adj_close_price '
+                    'FROM symbol AS sym '
+                    'INNER JOIN '
+                    'daily_price AS dp '
+                    'ON sym.id = dp.symbol_id '
+                    'WHERE sym.ticker="{0}" '
+                    'ORDER BY dp.price_date ASC').format(symbol))
+    prices = [ [date.timestamp() * 1000, float(price)] for date, price in cursor if price]
+    return prices
 
 @app.route("/chart/<symbol>")
 def graph(symbol):
@@ -50,8 +82,17 @@ def graph(symbol):
     TODO: Add multiple stock functionality, make graph more interactive, and update
     graph.html template
     """
+    views = get_wiki_views_series(symbol)
+    prices = get_daily_price_series(symbol)
+    print(views[:10])
+    print("--------------------------------")
+    print(prices[:10])
+    return render_template('chart.html', prices=prices, views=views)
 
-    return render_template('chart.html', series=[], title={"text": symbol})
+
+
+    price_series = [ {date.timestamp() * 1000: float(price)} for date, price in cursor if price]
+    return price_series
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

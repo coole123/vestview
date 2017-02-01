@@ -46,8 +46,8 @@
 
 
     <script>
-      var series = {{ series|safe }}
-      var title = {{ title|safe }}
+      var dailyPrices = {{ prices | tojson }}
+      var dailyViews = {{ views | tojson }}
     </script>
 
     <!--<script src={{ url_for('static', filename='./bower_components/jquery/dist/jquery.min.js') }}></script> -->
