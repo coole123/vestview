@@ -47,6 +47,9 @@ def _get_snp500_wiki_views(start, end):
     Parameters:
         start (str) : YYYYMMDD
         end   (str) : YYYYMMDD
+
+    Returns:
+        List[tuple] : (id, date, views, now, now)
     """
     pvc = PageviewsClient()
     symbol_ids_and_titles = _get_symbol_ids_and_wiki_titles()
