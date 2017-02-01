@@ -33,7 +33,8 @@ def parse_date_str(date_str):
 
 def get_ids_and_tickers():
     """
-    Retrieves list of ids and corresponding ticker for all symbols in the symbol table.
+    Retrieves list of ids and corresponding ticker for all symbols in the
+    symbol table.
 
     Returns:
         list: [(id, ticker) for every ticker found in the database]
@@ -150,7 +151,9 @@ def _insert_single_daily_stock(data_vendor_id, symbol_id, daily_data):
 
 def insert_daily_snp500(start=None, end=None):
     """
-    Inserts daily historical OHLC data for each company found in the symbol table. This will call different Yahoo Finance endpoints depending on the range [start, end]
+    Inserts daily historical OHLC data for each company found in the symbol
+    table. This will call different Yahoo Finance endpoints depending on the
+    range [start, end]
 
     Parameters:
         start (str) : YYYYMMDD, MMDDYYYY, DDMMYYYY
@@ -177,15 +180,13 @@ def insert_daily_snp500(start=None, end=None):
         tickers = [ ticker for _, ticker in get_ids_and_tickers() ]
         data = _get_many_stocks(tickers, start, end)
         if data is None:
-
             return
         ticker_to_id = {ticker:id for id, ticker in get_ids_and_tickers() }
         for ticker in data:
             id = ticker_to_id[ticker]
             _insert_single_daily_stock('1', id, data[ticker])
     else:
-        ids_and_tickers = get_ids_and_tickers()
-        for id, ticker in ids_and_tickers:
+        for id, ticker in get_ids_and_tickers():
             print("Adding data for {0}".format(ticker))
             daily_data = _get_single_stock(ticker, start, end)
             _insert_single_daily_stock('1', id, daily_data)
