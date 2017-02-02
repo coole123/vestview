@@ -1,6 +1,10 @@
 html, body {
-    font-family: 'Avenir', sans-serif;
+    font-family: 'Oswald', sans-serif;
     font-size: 10px;
     background-color: #E8EAF6;
     height: 100%;
+}
+
+body{
+    background: url(/static/imgs/polaroid.png)
 }
