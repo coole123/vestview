@@ -7,6 +7,7 @@ import MySQLdb as mdb
 
 app = Flask(__name__)
 
+
 def get_quotes(symbols):
     """
     Queries the public Yahoo Finance API for quotes.
@@ -33,19 +34,8 @@ def get_autocomplete_data():
     all_tickers = [ ticker for ticker, _ in cursor ]
     company_names = { ticker:name for ticker, name in cursor }
     quotes = get_quotes(all_tickers)
-    return [ {'label':company_names[d['symbol']], 'value':d['symbol'],
+    return [ {'company':company_names[d['symbol']], 'ticker':d['symbol'],
               'price':float(d['LastTradePriceOnly'])} for d in quotes ]
-
-
-@app.route('/')
-def root():
-    """
-    This will serve the homepage template
-    The data JSON obj is sent to the client side for real-time
-    autocomplete data
-    """
-    data = get_autocomplete_data()
-    return render_template("search.html", autocompleteData=data)
 
 
 def get_wiki_views_series(symbol):
@@ -62,6 +52,7 @@ def get_wiki_views_series(symbol):
     views = [ [date.timestamp() * 1000, int(views)] for date, views in cursor if views]
     return views
 
+
 def get_daily_price_series(symbol):
     conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
     cursor = conn.cursor()
@@ -75,8 +66,22 @@ def get_daily_price_series(symbol):
     prices = [ [date.timestamp() * 1000, float(price)] for date, price in cursor if price]
     return prices
 
+
+
+
+@app.route('/')
+def root():
+    """
+    This will serve the homepage template
+    The data JSON obj is sent to the client side for real-time
+    autocomplete data
+    """
+    data = get_autocomplete_data()
+    return render_template("search.html", autocompleteData=data)
+
+
 @app.route("/chart/<symbol>")
-def graph(symbol):
+def chart(symbol):
     """
     This function essentialy serves the page for http://vestview.com/stock/<SYMBOL>
     TODO: Add multiple stock functionality, make graph more interactive, and update
@@ -91,8 +96,7 @@ def graph(symbol):
 
 
 
-    price_series = [ {date.timestamp() * 1000: float(price)} for date, price in cursor if price]
-    return price_series
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
