@@ -18,10 +18,12 @@
     <link rel="stylesheet" type="text/css"
      href="{{ url_for('static', filename='css/search.css') }}">
 
+     <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet">
+
 </head>
 <body>
 
-    <nav class="navbar navbar-default">
+    <nav class="navbar transparent navbar-inverse">
         <div class="container-fluid">
             <div class="navbar-header">
                 <a class="navbar-brand", href="#">Vestview</a>
@@ -31,10 +33,11 @@
 
     <div class="featurette">
        <div class="featurette-inner text-center">
+          <h1 id="vestview-header">VestView</h1>
           <h4 id="timestamp"></h4>
-          <form role="form" class="search">
+          <form role="form" class="search" id='stock-search-form'>
              <div class="input-group input-group-lg">
-                <input type="search" placeholder="search" class="form-control autocomplete">
+                <input type="search" placeholder="Search for any S&P500 Company" class="form-control autocomplete">
                 <span class="input-group-btn">
                 <button class="btn" id="stock-search-btn" type="button">Search</button>
                 </span>
@@ -60,4 +63,3 @@
 
 </body>
 </html>
-

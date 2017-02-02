@@ -1,3 +1,7 @@
+body{
+    background: url(/static/imgs/bg.png)
+}
+
 html,
 body {
     height: 100% /* not necessary if you have a fixed height on the feature area */
@@ -21,7 +25,10 @@ body {
 .no-margin-top {
     margin-top: 0
 }
-
+#vestview-header{
+    font-family: 'Oswald', sans-serif;
+    font-size: 63px;
+}
 
 /* ------ form-control-lg */
 .form-control-lg {
@@ -51,6 +58,12 @@ body {
     }
 }
 
+ .navbar.transparent{
+    border-width: 0px;
+    -webkit-box-shadow: 0px 0px;
+    box-shadow: 0px 0px;
+    background: transparent;
+}
 
 body .ui-autocomplete {
   /* font-family to all */
@@ -101,5 +114,4 @@ body .ui-autocomplete .ui-menu-item .ui-corner-all {
      -moz-border-radius: 0 !important;
           border-radius: 0 !important;
 }
-
 

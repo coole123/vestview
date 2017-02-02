@@ -2,13 +2,12 @@ $(function() {
 
     var compnayData = {};
     var companies = [];
-    console.log(data)
     data.forEach(function(obj){
         compnayData[obj.company] = [obj.price, obj.ticker, obj.change];
         companies.push(obj.company);
     });
 
-    function buildDropdown(company, price, change){
+    function buildDropdownItem(company, price, change){
         if(change < 0){
             var pct = '<img src="/static/imgs/down.png"></img>';
             var span = '<span>$ ' + price + '  ' + pct + ' (' + change + ')</span>'
@@ -17,8 +16,7 @@ $(function() {
             var pct = '<img src="/static/imgs/up.svg"></img>';
              var span = '<span>$ ' + price + '  ' + pct + ' (+' + change + ')</span>'
         }
-        var b = '<p class="split-para"><strong>' + company + span + '</strong></p>';
-        return b
+        return '<p class="split-para"><strong>' + company + span + '</strong></p>';
     }
 
     function split( val ) {
@@ -66,7 +64,7 @@ $(function() {
         },
         create: function() {
             $(this).data('ui-autocomplete')._renderItem  = function (ul, item) {
-                var html = buildDropdown(item.value, compnayData[item.value][0],
+                var html = buildDropdownItem(item.value, compnayData[item.value][0],
                                          compnayData[item.value][2])
                 return $("<li class='dropdown-item'></li>")
                     .append(html)
@@ -77,14 +75,25 @@ $(function() {
 
     $("#stock-search-btn").on("click", function(e){
         // get companies from search field, and convert to tickers
-        var companies = split($('.autocomplete').val()); companies.pop();
+        var companies = split($('.autocomplete').val());
+        companies.pop();
         var tickers = [];
         companies.forEach(function(company){
             tickers.push(compnayData[company][1]);
         })
-        window.location.href = '/chart/' + tickers.join("&");
+        window.location = 'http://localhost:5000' + '/chart/' + tickers.join("&");
     })
+
+    $('#stock-search-form').keypress(function(e){
+        if(e.which === 13){//enter key pressed
+            $('#stock-search-btn').click();
+            return false;
+        }
+    });
 });
+
+
+
 
 /*-----------------------------------------------------------------
    Updates timestamp every second on search page*/
