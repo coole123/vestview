@@ -1,12 +1,25 @@
 $(function() {
 
-    var priceAndTicker = {};
+    var compnayData = {};
     var companies = [];
-    console.log(data);
+    console.log(data)
     data.forEach(function(obj){
-        priceAndTicker[obj.company] = [obj.price, obj.ticker];
+        compnayData[obj.company] = [obj.price, obj.ticker, obj.change];
         companies.push(obj.company);
     });
+
+    function buildDropdown(company, price, change){
+        if(change < 0){
+            var pct = '<img src="/static/imgs/down.png"></img>';
+            var span = '<span>$ ' + price + '  ' + pct + ' (' + change + ')</span>'
+        }
+        else{
+            var pct = '<img src="/static/imgs/up.svg"></img>';
+             var span = '<span>$ ' + price + '  ' + pct + ' (+' + change + ')</span>'
+        }
+        var b = '<p class="split-para"><strong>' + company + span + '</strong></p>';
+        return b
+    }
 
     function split( val ) {
       return val.split( /,\s*/ );
@@ -15,6 +28,13 @@ $(function() {
     function extractLast( term ) {
       return split( term ).pop();
     }
+
+    $.ui.autocomplete.filter = function (array, term) {
+        var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
+        return $.grep(array, function (value) {
+            return matcher.test(value.label || value.value || value);
+        });
+    };
 
     $(".autocomplete")
     // don't navigate away from the field on tab when selecting an item
@@ -46,8 +66,10 @@ $(function() {
         },
         create: function() {
             $(this).data('ui-autocomplete')._renderItem  = function (ul, item) {
-                return $("<li class='ui-menu-item'></li>")
-                    .append('<a>' + item.value + "    " + priceAndTicker[item.value][0] + '</a>')
+                var html = buildDropdown(item.value, compnayData[item.value][0],
+                                         compnayData[item.value][2])
+                return $("<li class='dropdown-item'></li>")
+                    .append(html)
                     .appendTo(ul);
             }
         }
@@ -58,7 +80,7 @@ $(function() {
         var companies = split($('.autocomplete').val()); companies.pop();
         var tickers = [];
         companies.forEach(function(company){
-            tickers.push(priceAndTicker[company][1]);
+            tickers.push(compnayData[company][1]);
         })
         window.location.href = '/chart/' + tickers.join("&");
     })
