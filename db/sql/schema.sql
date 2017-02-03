@@ -64,3 +64,16 @@ CREATE TABLE `daily_wiki_views` (
   PRIMARY KEY (`id`),
   KEY `index_symbol_id` (`symbol_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `articles` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `symbol_id` int NOT NULL,
+  `article_date` datetime NOT NULL,
+  `source` VARCHAR(255),
+  `url` VARCHAR(255),
+  `title` TEXT NOT NULL,
+  `summary` TEXT,
+  PRIMARY KEY(`id`),
+  UNIQUE KEY `index_url` (`url`)
+  KEY `index_symbol_id` (`symbol_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
