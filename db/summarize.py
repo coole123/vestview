@@ -20,7 +20,7 @@ import itertools
 import networkx
 from collections import Counter
 from gfnews import _get_articles
-from math import log10
+from math import log10, floor
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 
@@ -76,25 +76,66 @@ def _tokenize_sentences(text):
     # pre-trained Punkt tokenizer for English
     sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
     sentences = sent_detector.tokenize(text.strip())
-    return [ sentence.replace('\n', '') for sentence in sentences ]
+    return [ sentence.replace('\n', ' ') for sentence in sentences ]
 
 
-def _build_graph(textUnits, weightFunc=_levenshtein_dist):
+def _build_graph(textUnits, key):
+    """
+    Leverages networkx to build a graph from the textUnits, and uses the provided
+    key to detmine what weight function to use.
+    """
     G = networkx.Graph()
     G.add_nodes_from(textUnits)
+    weightFunc = _levenshtein_dist if key=='levanshtein' else _sentence_overlap
     # draw weighted edge between every textUnit
     for s1, s2 in itertools.combinations(textUnits, 2):
-        dist = weightFunc(s1, s2)
-        G.add_edge(s1, s2, weight=dist)
+        weight = weightFunc(s1, s2)
+        G.add_edge(s1, s2, weight=weight)
 
     return G
 
-def rankSentences(text, weightFunc=_levenshtein_dist):
-    sentences = _tokenize_sentences(text)
-    G = _build_graph(sentences, weightFunc)
+def extractKeywords(text, coocc=2, key='levanshtein'):
+    """
+    Tokenizes the text into words, then runs the TextRank algorithm.
+    """
+    words = set(_tokenize_words(text))
+    # nouns & adjectives got best results, so filter using NLTK part-of-speech tagger
+    wordsAndTags = nltk.pos_tag(words)
+    adjAndNounTags = ['JJ', 'JJR', 'JJS', 'NN', 'NNS', 'NNP']
 
-    textRank = networkx.pagerank(G)
+    return words
+
+
+
+def extractSummary(text, keep=0.2, key='levanshtein'):
+    """
+    Tokenizes the text into sentences, then runs TextRank algorithm. The sentences
+    will be ranked according to the key passed in, and the amount of sentences
+    returned will depend on the keep parameter. The default is 0.2, which will
+    cut the text down by 80%.
+
+    Parameters:
+        text (str): text to summarize
+        keep (int): ratio of sentences to keep from the summary
+        key (str): metric used to determine rank
+            either `levanshtein` or `overlap`
+    """
+    if keep < 0 or keep > 1:
+        raise ValueError("keep must be in the range [0,1]")
+    if key not in ['levanshtein', 'overlap']:
+        raise ValueError('key must be either `levanshtein` or `overlap`')
+    # tokenize text, and keep chronological o
+    sentences = _tokenize_sentences(text)
+    locs = {sentence:i for i, sentence in enumerate(sentences)}
+    G = _build_graph(sentences, key)
+    textRank = networkx.pagerank(G, weight='weight')
 
     topSentences = sorted(textRank, key=textRank.get, reverse=True)
-    summary = ' '.join(topSentences)
-    return summary
+    numToKeep = floor(keep * len(sentences))
+    # map each sentence to it's original location in the text
+    summary = [ (sentence,locs[sentence]) for sentence in topSentences[:numToKeep]]
+    # sort by chronological order
+    summary.sort(key=lambda t: t[1])
+
+    return ' '.join(t[0] for t in summary)
+
