@@ -1,12 +1,11 @@
 import requests
-import json
+import MySQLdb as mdb
 import demjson
-import time
 import re
-import argparse
+import time
 from datetime import datetime, date, timedelta
+from summarize import extractSummary
 from html import unescape
-from pymongo import MongoClient
 """
 Notes on googleFinance news JSONP response
 -----------------------------------------------------------------------------
@@ -31,6 +30,13 @@ The strutcure of these clusters follows:
         ]
 }
 """
+
+db_host = '127.0.0.1'
+db_user = 'sec_user'
+db_pass = 'password'
+db_name = 'securities_master'
+db_port = 3306
+
 
 def _parse_date(date_str):
     """ Turns a date string into a valid datetime object"""
@@ -73,7 +79,6 @@ def _get_articles(symbol, num_articles=500):
     try:
         resp = requests.get("http://www.google.com/finance/company_news?",
                                 params=payload)
-        print(resp.url)
         resp.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(e)
@@ -88,21 +93,45 @@ def _get_articles(symbol, num_articles=500):
                 date = _parse_date(article["date"])
                 src = article['source']
                 title = unescape(article['title'])
-                summary = unescape(article['openingSentence'])
                 url = article['url']
+                summary = extractSummary(url)
+                if not summary:
+                    continue
                 articles.append( (date, src, url, title, summary) )
     return articles
 
-def insert_snp500_news():
-    columns_str = "article_date, source, url, title, summary"
-    fill_str = "%s, %s, %s, %s, %s"
-    template_insert_str = ("INSERT INTO articles ({columns})"
-                           "VALUES ({vals})".format(columns=columns_str,
-                                                    vals=fill_str))
-    for id, ticker in get_ids_and_tickers():
-        articles = _get_articles(ticker, num_articles=25)
 
+def get_ids_and_tickers():
+    """
+    Retrieves list of ids and corresponding ticker for all symbols in the
+    symbol table.
+
+    Returns:
+        list: [(id, ticker) for every ticker found in the database]
+    """
     conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
     with conn:
         cur = conn.cursor()
-        cur.executemany(template_insert_str, articles)
+        cur.execute('SELECT id, ticker FROM symbol')
+        rows = cur.fetchall()
+        return [(row[0], row[1]) for row in rows]
+
+
+def insert_snp500_news():
+    columns_str = "symbol_id, article_date, source, url, title, summary"
+    fill_str = "%s, %s, %s, %s, %s, %s"
+    template_insert_str = ("INSERT IGNORE INTO articles ({columns}) "
+                           "VALUES ({vals})".format(columns=columns_str,
+                                                    vals=fill_str))
+    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port,
+                       use_unicode=True, charset="utf8")
+    cursor = conn.cursor()
+    with conn:
+        for id, ticker in get_ids_and_tickers():
+            print("Adding news articles for {0}".format(ticker))
+            articles = _get_articles(ticker, num_articles=3)
+            # add the symbol_id to the rows
+            articles = [ (id, *t) for t in articles ]
+            cursor.executemany(template_insert_str, articles)
+            conn.commit()
+            time.sleep(60)

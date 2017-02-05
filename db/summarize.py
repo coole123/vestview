@@ -22,7 +22,7 @@ from collections import Counter
 from gfnews import _get_articles
 from math import log10, floor
 from nltk.tokenize import sent_tokenize, word_tokenize
-
+from newspaper import Article
 
 def _levenshtein_dist(s1, s2):
     """
@@ -107,7 +107,7 @@ def extractKeywords(text, coocc=2, key='levanshtein'):
 
 
 
-def extractSummary(text, keep=0.2, key='levanshtein'):
+def extractSummary(url, keep=0.2, key='levanshtein'):
     """
     Tokenizes the text into sentences, then runs TextRank algorithm. The sentences
     will be ranked according to the key passed in, and the amount of sentences
@@ -124,8 +124,14 @@ def extractSummary(text, keep=0.2, key='levanshtein'):
         raise ValueError("keep must be in the range [0,1]")
     if key not in ['levanshtein', 'overlap']:
         raise ValueError('key must be either `levanshtein` or `overlap`')
+    article = Article(url)
+    article.download()
+    if article.is_downloaded:
+        article.parse()
+    else:
+        return ''
     # tokenize text, and keep chronological o
-    sentences = _tokenize_sentences(text)
+    sentences = _tokenize_sentences(article.text)
     locs = {sentence:i for i, sentence in enumerate(sentences)}
     G = _build_graph(sentences, key)
     textRank = networkx.pagerank(G, weight='weight')

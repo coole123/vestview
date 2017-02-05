@@ -74,6 +74,6 @@ CREATE TABLE `articles` (
   `title` TEXT NOT NULL,
   `summary` TEXT,
   PRIMARY KEY(`id`),
-  UNIQUE KEY `index_url` (`url`)
+  UNIQUE KEY `index_url` (`url`),
   KEY `index_symbol_id` (`symbol_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
