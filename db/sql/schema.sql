@@ -51,7 +51,8 @@ CREATE TABLE `daily_price` (
   `volume` bigint NULL,
   PRIMARY KEY (`id`),
   KEY `index_data_vendor_id` (`data_vendor_id`),
-  KEY `index_symbol_id` (`symbol_id`)
+  KEY `index_symbol_id` (`symbol_id`),
+  UNIQUE KEY `unique_index_symbol_id` (`symbol_id`, `price_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 CREATE TABLE `daily_wiki_views` (
@@ -62,7 +63,8 @@ CREATE TABLE `daily_wiki_views` (
   `created_date` datetime NOT NULL,
   `last_updated_date`  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `index_symbol_id` (`symbol_id`)
+  KEY `index_symbol_id` (`symbol_id`),
+  UNIQUE KEY `unique_index_wiki` (`symbol_id`, `views_date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 CREATE TABLE `articles` (

@@ -28,7 +28,7 @@ def sync_table(table, column):
     min_date = datetime.datetime.strftime(cur.fetchall()[0][0], '%Y-%m-%d')
     delete_template = 'DELETE FROM {table} WHERE {column} > "{min_date}"'
     ret = cur.execute(delete_template.format(table=table, column=column, min_date=min_date))
-    print("Query OK, {0} rows affected".format(ret))
+    print('Syncing {0} table...'.format(table))
 
 
 
@@ -48,8 +48,9 @@ def update_daily_prices():
     sync_table(table='daily_price', column='price_date')
     most_recent_date = most_recent_entry_date(table='daily_price', column='price_date')
     insert_daily_snp500(start=most_recent_date)
+    print("Deleting NULL rows from daily_price table...")
     delnum = cur.execute('DELETE FROM daily_price WHERE adj_close_price IS NULL')
-    print('Deleted {0} NULL rows'.format(delnum))
+
 
 
 def update_daily_wiki_views():
@@ -58,8 +59,10 @@ def update_daily_wiki_views():
     sync_table(table='daily_wiki_views', column='views_date')
     most_recent_date = most_recent_entry_date(table='daily_wiki_views', column='views_date')
     insert_daily_snp500_wiki_views(start=most_recent_date)
+    print("Deleting NULL rows from daily_wiki_views...")
     delnum = cur.execute('DELETE FROM daily_wiki_views WHERE views IS NULL')
-    print("Deleted {0} NULL rows".format(delnum))
+
+
 if __name__ == "__main__":
     update_daily_wiki_views()
     update_daily_prices()

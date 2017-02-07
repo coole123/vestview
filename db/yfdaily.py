@@ -2,9 +2,8 @@ import datetime
 import MySQLdb as mdb
 import requests
 import json
-# ignore truncation warnings
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from warnings import filterwarnings
 
 
@@ -25,10 +24,11 @@ def parse_date_str(date_str):
                     "%d-%m-%y", "%d/%m/%y", "%d.%m.%y", "%d%m%Y"]
     for fmt in date_formats:
         try:
-            return datetime.datetime.strptime(date_str, fmt).timetuple()[:3]
+            return datetime.strptime(date_str, fmt)
         except ValueError:
             pass
     raise ValueError("couldn't parse dates, please use -h for accepted formats")
+
 
 
 def get_ids_and_tickers():
@@ -53,13 +53,14 @@ def _get_single_stock(ticker, start, end):
 
     Parameters:
         ticker (str) : Ticker you want historical data for
-        start  (tuple) : (YYYY, MM, DD)
-        end    (tuple) : (YYYY, MM, DD)
+        start  (datetime) : (YYYY, MM, DD)
+        end    (datetime) : (YYYY, MM, DD)
 
     Returns:
         List[tuple]:
             [ (Date, Open, High, Low, Close, Volume, AdjClose) ...]
     """
+    start, end = start.timetuple()[:3], end.timetuple()[:3]
     YFINANCE_CSV_URL = ('http://ichart.finance.yahoo.com/table.csv?'
                        's=%s&a=%s&b=%s&c=%s&d=%s&e=%s&f=%s')
     req_url = YFINANCE_CSV_URL % (ticker, start[1]-1, start[2], start[0],
@@ -74,7 +75,7 @@ def _get_single_stock(ticker, start, end):
 
         for day in yahoo_data_iter:
             row = day.decode('utf-8').split(',')
-            daily_prices.append( (datetime.datetime.strptime(row[0], '%Y-%m-%d'),
+            daily_prices.append( (datetime.strptime(row[0], '%Y-%m-%d'),
                                   row[1], row[2], row[3], row[4], row[5], row[6]))
     except requests.exceptions.RequestException as e:
         print(e)
@@ -89,11 +90,11 @@ def _get_many_stocks(tickers, start, end):
 
     Parameters:
         tickers (list[str]) : List of tickers to get historical data for
-        start (tuple) : (YYYY, MM, DD)
-        end   (tuple) : (YYYY, MM, DD)
+        start (datetime) : (YYYY, MM, DD)
+        end   (datetime) : (YYYY, MM, DD)
     """
     tickers = '(' + ','.join(['\"' + s.upper() + '"' for s in tickers]) + ')'
-    start, end = "-".join(map(str, start)), "-".join(map(str, end))
+    start, end = datetime.strftime(start, '%Y-%m-%d') , datetime.strftime(end, '%Y-%m-%d')
     query = ('select * '
              'from yahoo.finance.historicaldata '
              'where symbol IN {t} AND '
@@ -117,7 +118,7 @@ def _get_many_stocks(tickers, start, end):
     # coerce JSON object to rows, to be used in _insert_single_daily_stock
     ticker_to_rows = defaultdict(list)
     for obj in json_data:
-        date = datetime.datetime.strptime(obj['Date'], '%Y-%m-%d')
+        date = datetime.strptime(obj['Date'], '%Y-%m-%d')
         row = (date, obj['Open'], obj['High'], obj['Low'], obj['Close'],
                obj['Volume'], obj['Adj_Close'])
         ticker_to_rows[obj['Symbol']].append(row)
@@ -135,13 +136,13 @@ def _insert_single_daily_stock(data_vendor_id, symbol_id, daily_data):
         daily_data (list) : The rows of data returned from `get_daily_yahoo_historical`
     """
     conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     # add data vendor and symbol id to data
     daily_prices = [(data_vendor_id, symbol_id, t[0], now, now, *t[1:]) for t in daily_data]
     columns = ("data_vendor_id, symbol_id, price_date, created_date, last_updated_date,"
                "open_price, high_price, low_price, close_price, volume, adj_close_price")
     fill_str = ("%s, " * 11)[:-2]
-    template_insert_str = ("INSERT INTO daily_price ({columns}) "
+    template_insert_str = ("INSERT IGNORE INTO daily_price ({columns}) "
                           "VALUES ({vals})".format(columns=columns, vals=fill_str))
 
     with conn:
@@ -162,19 +163,23 @@ def insert_daily_snp500(start=None, end=None):
     """
 
     # convert date strs to tuple (YYYY, MM, DD)
+
     if start is None:
-        start = (datetime.datetime.now() - timedelta(days=30)).timetuple()[:3]
+        start = datetime.now() - timedelta(days=30)
     else:
         start = parse_date_str(start)
+
     if end is None:
-        end = datetime.date.today().timetuple()[:3]
+        end = datetime.now()
     else:
         end = parse_date_str(end)
-    dist = (datetime.datetime(end[0], end[1], end[2]) -
-            datetime.datetime(start[0], start[1], start[2]))
 
+    dist = (end - start)
+    print("Inserting daily S&P 500 price data from",
+          datetime.strftime(start, '%Y-%m-%d'), "to",
+          datetime.strftime(end, '%Y-%m-%d'), sep=' ')
     if dist.days == 0:
-        print("daily_price already up to date")
+        print("inserting nothing")
         return
     elif dist.days <= 30:
         tickers = [ ticker for _, ticker in get_ids_and_tickers() ]

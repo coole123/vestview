@@ -99,7 +99,7 @@ def insert_daily_snp500_wiki_views(start=None, end=None):
     daily_views = _get_snp500_wiki_views(start, end)
     columns_str = ("symbol_id, views_date, views, created_date, last_updated_date")
     fill_str = "%s, %s, %s, %s, %s"
-    template_insert_str = ("INSERT INTO daily_wiki_views ({columns})"
+    template_insert_str = ("INSERT IGNORE INTO daily_wiki_views ({columns})"
                           "VALUES ({vals})".format(columns=columns_str,
                                                    vals=fill_str))
 
