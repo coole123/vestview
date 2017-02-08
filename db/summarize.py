@@ -18,8 +18,6 @@ Steps:
 """
 import itertools
 import networkx
-from collections import Counter
-from gfnews import _get_articles
 from math import log10, floor
 from nltk.tokenize import sent_tokenize, word_tokenize
 from newspaper import Article

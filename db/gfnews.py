@@ -1,11 +1,5 @@
-import requests
-import MySQLdb as mdb
-import demjson
-import re
-import time
-from datetime import datetime, date, timedelta
-from summarize import extractSummary
-from html import unescape
+#!/usr/bin/env python
+
 """
 Notes on googleFinance news JSONP response
 -----------------------------------------------------------------------------
@@ -31,12 +25,18 @@ The strutcure of these clusters follows:
 }
 """
 
-db_host = '127.0.0.1'
-db_user = 'sec_user'
-db_pass = 'password'
-db_name = 'securities_master'
-db_port = 3306
+import requests
+import MySQLdb as mdb
+import demjson
+import re
+import time
+from datetime import datetime, date, timedelta
+from summarize import extractSummary
+from warnings import filterwarnings
+from html import unescape
 
+# ignore duplicate entry warning, unique index assertions no insertion
+filterwarnings('ignore', category=mdb.Warning)
 
 def _parse_date(date_str):
     """ Turns a date string into a valid datetime object"""
@@ -69,23 +69,24 @@ def _make_keys_verbose(article_dict):
 
 
 def _get_articles(symbol, num_articles=500):
-    """ return tuples (date, title, summary"""
+    """ return tuples (date, title, summary)"""
     payload = {
         "output": "json",
         "q": symbol,
         "num": num_articles,
         "start": 0
     }
+
     try:
-        resp = requests.get("http://www.google.com/finance/company_news?",
-                                params=payload)
+        resp = requests.get("http://www.google.com/finance/company_news?", params=payload)
         resp.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(e)
         return
-    clusters = demjson.decode(resp.text)['clusters']
     # need demjson's decode, json data is invalid for pythons native decoder
+    clusters = demjson.decode(resp.text)['clusters']
     articles = []
+
     for cluster in clusters:
         if "a" in cluster:
             for article in cluster["a"]:
@@ -95,43 +96,41 @@ def _get_articles(symbol, num_articles=500):
                 title = unescape(article['title'])
                 url = article['url']
                 summary = extractSummary(url)
-                if not summary:
+
+                if 'wsj.com' in url or not summary:
+                    print("couldnt summarize {0}, skipping".format(url))
                     continue
+
                 articles.append( (date, src, url, title, summary) )
+
     return articles
 
 
-def get_ids_and_tickers():
-    """
-    Retrieves list of ids and corresponding ticker for all symbols in the
-    symbol table.
-
-    Returns:
-        list: [(id, ticker) for every ticker found in the database]
-    """
-    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
-    with conn:
-        cur = conn.cursor()
-        cur.execute('SELECT id, ticker FROM symbol')
-        rows = cur.fetchall()
-        return [(row[0], row[1]) for row in rows]
-
-
-def insert_snp500_news():
+def insert_snp500_news(conn):
     columns_str = "symbol_id, article_date, source, url, title, summary"
     fill_str = "%s, %s, %s, %s, %s, %s"
     template_insert_str = ("INSERT IGNORE INTO articles ({columns}) "
                            "VALUES ({vals})".format(columns=columns_str,
                                                     vals=fill_str))
+    cur = conn.cursor()
+    cur.execute('SELECT id, ticker FROM symbol')
+
+    for id, ticker in cur:
+        print("Adding news articles for {0}".format(ticker))
+        articles = _get_articles(ticker, num_articles=3)
+        # add the symbol_id to the rows
+        articleRows = [ (id, *t) for t in articles ]
+        cur.executemany(template_insert_str, articleRows)
+        time.sleep(10)
+
+    cur.close()
+
+
+if __name__ == '__main__':
+    # cron tab should run this after markets close on M,W,F
+    from config import db_host, db_user, db_pass, db_name, db_port
     conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port,
-                       use_unicode=True, charset="utf8")
-    cursor = conn.cursor()
+                      use_unicode=True, charset="utf8")
+    conn.autocommit(True)
     with conn:
-        for id, ticker in get_ids_and_tickers():
-            print("Adding news articles for {0}".format(ticker))
-            articles = _get_articles(ticker, num_articles=3)
-            # add the symbol_id to the rows
-            articles = [ (id, *t) for t in articles ]
-            cursor.executemany(template_insert_str, articles)
-            conn.commit()
-            time.sleep(60)
+        insert_snp500_news(conn)
