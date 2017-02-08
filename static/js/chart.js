@@ -4,6 +4,10 @@ $(function () {
      * @returns {undefined}
      */
     var seriesOptions = [], seriesCounter = 0, colorsCounter = 0;
+    var tickers = window.location.href.split("/");
+    tickers = tickers[tickers.length - 1];
+    tickers = tickers.split("&");
+
     colors = ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9',
    '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1']
     function createStockChart() {
@@ -82,4 +86,14 @@ $(function () {
     }
 
     createStockChart();
+
+    $.each(tickers, function(i, ticker){
+        var navid = "#nav-" + ticker;
+        var accid = "#accordion-" + ticker;
+        $(navid).on("click", function(){
+            $(accid).slideToggle("fast");
+        });
+    });
+
+    $("#accordion-" + tickers[0]).slideToggle("fast");
 });

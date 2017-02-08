@@ -50,65 +50,47 @@
       <div class="col-md-12">
         <div class="card text-center">
          <div class="card-header"> <!-- card nav -->
-             <ul class="nav nav-tabs card-header-tabs">
-               <li class="nav-item">
-                 <a class="nav-link active" id="3mnav" href="#">Ford</a>
-               </li>
-               <li class="nav-item">
-                 <a class="nav-link" href="#">Apple</a>
-               </li>
-               <li class="nav-item">
-                 <a class="nav-link" href="#">Google</a>
-               </li>
-             </ul>
+            <ul class="nav nav-tabs card-header-tabs">
+
+            {% for ticker in articles %}
+              <li class="nav-item">
+                <a class="nav-link" id="nav-{{ ticker }}" href="#">
+                  {{ ticker }}
+                </a>
+              </li>
+            {% endfor %}
+            </ul>
           </div> <!-- end card nav -->
+          {% for ticker in articles %}
+          <div id="accordion-{{ticker}}" style="display: none" role="tablist" aria-multiselectable="true">
+          {% for article in articles[ticker] %}
 
-          <div id="acc" role="tablist" aria-multiselectable="true">
+
             <div class="card">
-              <div class="card-header" role="tab" id="headingOne">
+              <div class="card-header" role="tab" id="heading-{ticker }}">
                 <h5 class="mb-0">
-                  <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne"  aria-controls="collapseOne">
-                    3M Co Q4 Earnings: What's in the Cards for MMM Stock?
+                  <a data-toggle="collapse" data-parent="#accordion" href="#collapse-{{ ticker }}"  aria-controls="collapse-{{ticker}}">
+                    <p> {{ article.title }} </p>
                   </a>
                 </h5>
               </div>
 
-              <div id="collapseOne" class="collapse" role="tabpanel" aria-labelledby="headingOne">
+              <div id="collapse-{{ ticker }}" class="collapse" role="tabpanel" aria-labelledby="heading-{{ ticker }}">
                 <div class="card-block">
-                  Anim pariatur cliche reprehenderit, enim eiusmod high life
+                  {{ article.summary }}
                 </div>
               </div>
             </div>
 
-            <div class="card">
-              <div class="card-header" role="tab" id="headingOne">
-                <h5 class="mb-0">
-                  <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne"  aria-controls="collapseOne">
-                    3M Co Q4 Earnings: What's in the Cards for MMM Stock?
-                  </a>
-                </h5>
-              </div>
-
-              <div id="collapseOne" class="collapse" role="tabpanel" aria-labelledby="headingOne">
-                <div class="card-block">
-                  Anim pariatur cliche reprehenderit, enim eiusmod high life
-                </div>
-              </div>
-            </div>
+          {% endfor %}
           </div> <!-- end accordion -->
-        </div> <!-- end container card-->
+          {% endfor %}
 
 
-
-    </div>
-
-
-      </div>
-    </div>
+      </div> <!-- end container card-->
     <script>
       var dailyPrices = {{ prices | tojson }}
       var dailyViews = {{ views | tojson }}
-      var newsArticles = {{ articles | tojson}}
     </script>
 
     <!--<script src={{ url_for('static', filename='./bower_components/jquery/dist/jquery.min.js') }}></script> -->

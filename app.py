@@ -32,7 +32,8 @@ def chart(tickers):
     prices = get_daily_price_series(conn, tickers)
     articles = get_news_articles(conn, tickers)
 
-    return render_template('chart.html', prices=prices, views=views, articles=articles)
+    return render_template('chart.html', prices=prices, views=views,
+                            articles=articles, tickers=tickers)
 
 
 if __name__ == "__main__":

@@ -32,9 +32,9 @@ def _get_quotes(symbols):
 def get_autocomplete_data(conn):
     cur = conn.cursor()
     cur.execute('SELECT ticker, name FROM symbol')
-    all_tickers = [ ticker for ticker, _ in cur ]
+    allTickers = [ ticker for ticker, _ in cur ]
     company_names = { ticker:name for ticker, name in cur }
-    quotes = _get_quotes(all_tickers)
+    quotes = _get_quotes(allTickers)
     allData = []
     for d in quotes:
         quote = {
@@ -52,7 +52,7 @@ def get_index_data():
     """
     Gets index data for marquee
     """
-    all_indexes = ['^DJI', '^RUA', '^GSPC', '^IXIC', '^SZSA', '^XCI', '^MSH']
+    indexTickers = ['^DJI', '^RUA', '^GSPC', '^IXIC', '^SZSA', '^XCI', '^MSH']
 
 
 def get_wiki_views_series(conn, tickers):
