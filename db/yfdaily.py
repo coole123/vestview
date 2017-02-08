@@ -1,19 +1,13 @@
 import datetime
-import MySQLdb as mdb
 import requests
 import json
+import MySQLdb as mdb
 from collections import defaultdict
 from datetime import datetime, timedelta
 from warnings import filterwarnings
 
-
+# ignore truncation warnings
 filterwarnings('ignore', category=mdb.Warning)
-db_host = '127.0.0.1'
-db_user = 'sec_user'
-db_pass = 'password'
-db_name = 'securities_master'
-db_port = 3306
-
 
 def parse_date_str(date_str):
     """
@@ -31,7 +25,7 @@ def parse_date_str(date_str):
 
 
 
-def get_ids_and_tickers():
+def get_ids_and_tickers(conn):
     """
     Retrieves list of ids and corresponding ticker for all symbols in the
     symbol table.
@@ -39,12 +33,12 @@ def get_ids_and_tickers():
     Returns:
         list: [(id, ticker) for every ticker found in the database]
     """
-    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
-    with conn:
-        cur = conn.cursor()
-        cur.execute('SELECT id, ticker FROM symbol')
-        rows = cur.fetchall()
-        return [(row[0], row[1]) for row in rows]
+
+    cur = conn.cursor()
+    cur.execute('SELECT id, ticker FROM symbol')
+    rows = cur.fetchall()
+    cur.close()
+    return [(row[0], row[1]) for row in rows]
 
 
 def _get_single_stock(ticker, start, end):
@@ -126,7 +120,7 @@ def _get_many_stocks(tickers, start, end):
     return ticker_to_rows
 
 
-def _insert_single_daily_stock(data_vendor_id, symbol_id, daily_data):
+def _insert_single_daily_stock(conn, data_vendor_id, symbol_id, daily_data):
     """
     Inserts single historical stock into database
 
@@ -135,7 +129,6 @@ def _insert_single_daily_stock(data_vendor_id, symbol_id, daily_data):
         symbol_id (int) : Id of the stock (foreign key to symbol table)
         daily_data (list) : The rows of data returned from `get_daily_yahoo_historical`
     """
-    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
     now = datetime.utcnow()
     # add data vendor and symbol id to data
     daily_prices = [(data_vendor_id, symbol_id, t[0], now, now, *t[1:]) for t in daily_data]
@@ -145,12 +138,12 @@ def _insert_single_daily_stock(data_vendor_id, symbol_id, daily_data):
     template_insert_str = ("INSERT IGNORE INTO daily_price ({columns}) "
                           "VALUES ({vals})".format(columns=columns, vals=fill_str))
 
-    with conn:
-        cur = conn.cursor()
-        cur.executemany(template_insert_str, daily_prices)
+    cur = conn.cursor()
+    cur.executemany(template_insert_str, daily_prices)
+    cur.close()
 
 
-def insert_daily_snp500(start=None, end=None):
+def insert_daily_snp500(conn, start=None, end=None):
     """
     Inserts daily historical OHLC data for each company found in the symbol
     table. This will call different Yahoo Finance endpoints depending on the
@@ -178,21 +171,21 @@ def insert_daily_snp500(start=None, end=None):
     print("Inserting daily S&P 500 price data from",
           datetime.strftime(start, '%Y-%m-%d'), "to",
           datetime.strftime(end, '%Y-%m-%d'), sep=' ')
-    if dist.days == 0:
-        print("inserting nothing")
+    if dist.days <= 0:
+        print("`daily_price` already up-to-date")
         return
     elif dist.days <= 30:
-        tickers = [ ticker for _, ticker in get_ids_and_tickers() ]
+        tickers = [ ticker for _, ticker in get_ids_and_tickers(conn) ]
         data = _get_many_stocks(tickers, start, end)
         if data is None:
             return
-        ticker_to_id = {ticker:id for id, ticker in get_ids_and_tickers() }
+        ticker_to_id = {ticker:id for id, ticker in get_ids_and_tickers(conn) }
         for ticker in data:
             id = ticker_to_id[ticker]
-            _insert_single_daily_stock('1', id, data[ticker])
+            _insert_single_daily_stock(conn, '1', id, data[ticker])
     else:
-        for id, ticker in get_ids_and_tickers():
+        for id, ticker in get_ids_and_tickers(conn):
             print("Adding data for {0}".format(ticker))
             daily_data = _get_single_stock(ticker, start, end)
-            _insert_single_daily_stock('1', id, daily_data)
+            _insert_single_daily_stock(conn, '1', id, daily_data)
 

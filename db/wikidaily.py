@@ -1,14 +1,7 @@
 import requests
 import datetime
-import MySQLdb as mdb
 from datetime import timedelta
 from mwviews.api import PageviewsClient
-
-db_host = '127.0.0.1'
-db_user = 'sec_user'
-db_pass = 'password'
-db_name = 'securities_master'
-db_port = 3306
 
 def parse_date_str(date_str):
     """
@@ -25,7 +18,7 @@ def parse_date_str(date_str):
             pass
     raise ValueError("couldn't parse dates, please use -h for accepted formats")
 
-def _get_symbol_ids_and_wiki_titles():
+def _get_symbol_ids_and_wiki_titles(conn):
     """
     Retrieves list for all symbol ids and their respective wikipedia page title
     for every symbol in the symbol table.
@@ -33,14 +26,13 @@ def _get_symbol_ids_and_wiki_titles():
     Returns:
         list: [(id, wiki_title) for every ticker found in the database]
     """
-    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
-    with conn:
-        cur = conn.cursor()
-        cur.execute('SELECT id, wiki_title FROM symbol')
-        rows = cur.fetchall()
-        return [(row[0], row[1]) for row in rows]
+    cur = conn.cursor()
+    cur.execute('SELECT id, wiki_title FROM symbol')
+    rows = cur.fetchall()
+    cur.close()
+    return [(row[0], row[1]) for row in rows]
 
-def _get_snp500_wiki_views(start, end):
+def _get_snp500_wiki_views(conn, start, end):
     """
     Inserts wiki page views into the daily_views table
 
@@ -52,7 +44,7 @@ def _get_snp500_wiki_views(start, end):
         List[tuple] : (id, date, views, now, now)
     """
     pvc = PageviewsClient()
-    symbol_ids_and_titles = _get_symbol_ids_and_wiki_titles()
+    symbol_ids_and_titles = _get_symbol_ids_and_wiki_titles(conn)
     title_to_id = { title:id for id, title in symbol_ids_and_titles }
     articles = [ title for _, title in symbol_ids_and_titles ]
     project = 'en.wikipedia'
@@ -70,7 +62,7 @@ def _get_snp500_wiki_views(start, end):
     return daily_views
 
 
-def insert_daily_snp500_wiki_views(start=None, end=None):
+def insert_daily_snp500_wiki_views(conn, start=None, end=None):
     """
     Inserts wiki page views into the daily_views table
 
@@ -92,19 +84,20 @@ def insert_daily_snp500_wiki_views(start=None, end=None):
     else:
         end = parse_date_str(end)
 
+    print("Inserting dailywikipedia views price data from",
+          start[:4]+'-'+start[4:6]+'-'+start[6:],
+          end[:4]+'-'+end[4:6]+'-'+end[6:], sep=' ')
     if start == end:
-        print("daily_wiki_views already up to date")
+        print("`daily_wiki_views` already up-to-date")
         return
 
-    daily_views = _get_snp500_wiki_views(start, end)
+    daily_views = _get_snp500_wiki_views(conn, start, end)
     columns_str = ("symbol_id, views_date, views, created_date, last_updated_date")
     fill_str = "%s, %s, %s, %s, %s"
     template_insert_str = ("INSERT IGNORE INTO daily_wiki_views ({columns})"
                           "VALUES ({vals})".format(columns=columns_str,
                                                    vals=fill_str))
-
-    conn = mdb.connect(db_host, db_user, db_pass, db_name, db_port)
-    with conn:
-        cur = conn.cursor()
-        cur.executemany(template_insert_str, daily_views)
+    cur = conn.cursor()
+    cur.executemany(template_insert_str, daily_views)
+    cur.close()
 
