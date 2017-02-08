@@ -40,7 +40,7 @@
     <!-- HighStocks Chart Div -->
     <div class="container-fluid" id="charts-div">
       <div class="row">
-        <div class="col-md-10 col-md-offset-1">
+        <div class="col-lg-10 col-lg-offset-1">
           <div id="stockchart"></div>
         </div>
       </div>
@@ -96,6 +96,7 @@
     <script>
       var dailyPrices = {{ prices | tojson }}
       var dailyViews = {{ views | tojson }}
+      var newsArticles = {{ articles | tojson}}
     </script>
 
     <!--<script src={{ url_for('static', filename='./bower_components/jquery/dist/jquery.min.js') }}></script> -->

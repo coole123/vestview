@@ -1,77 +1,14 @@
-from flask import Flask, render_template, jsonify
-from datetime import datetime
-import requests
-import json
-import sys
 import MySQLdb as mdb
+from db import config
+from flask import Flask, render_template, jsonify
+from utils import (get_autocomplete_data,
+                   get_wiki_views_series,
+                   get_daily_price_series,
+                   get_news_articles)
 
 app = Flask(__name__)
-
-
-def _get_quotes(symbols):
-    """
-    Queries the public Yahoo Finance API for quotes.
-    """
-    # have to format symbols list to from ("SYM1", "SYM2", .... ,"SYMN")
-    symbols = "(" + ",".join(['\"' + s.upper() + '"' for s in symbols]) + ")"
-    query = 'SELECT * FROM yahoo.finance.quote WHERE symbol in {0}'.format(symbols)
-    payload = {
-        "q": query, 'format':'json', "env":'store://datatables.org/alltableswithkeys'
-    }
-    try:
-        resp = requests.get('http://query.yahooapis.com/v1/public/yql?', params=payload)
-        resp.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(e)
-        return
-    return json.loads(resp.text)["query"]["results"]["quote"]
-
-
-def get_autocomplete_data():
-    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
-    cursor = conn.cursor()
-    cursor.execute('SELECT ticker, name FROM symbol')
-    all_tickers = [ ticker for ticker, _ in cursor ]
-    company_names = { ticker:name for ticker, name in cursor }
-    quotes = _get_quotes(all_tickers)
-    return [ {'company':company_names[d['symbol']], 'ticker':d['symbol'],
-              'price':float(d['LastTradePriceOnly']), 'change': float(d['Change'])}
-              for d in quotes ]
-
-
-def get_wiki_views_series(tickers):
-    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
-    cursor = conn.cursor()
-    views = {}
-    for ticker in tickers:
-        cursor.execute(('SELECT dv.views_date, dv.views '
-                        'FROM symbol AS sym '
-                        'INNER JOIN '
-                        'daily_wiki_views AS dv '
-                        'ON sym.id = dv.symbol_id '
-                        'WHERE sym.ticker="{0}" '
-                        'ORDER BY dv.views_date ASC').format(ticker))
-        views[ticker] = [ [date.timestamp() * 1000, int(views)]
-                          for date, views in cursor if views ]
-    return views
-
-
-def get_daily_price_series(tickers):
-    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
-    cursor = conn.cursor()
-    prices = {}
-    for ticker in tickers:
-        cursor.execute(('SELECT dp.price_date, dp.adj_close_price '
-                        'FROM symbol AS sym '
-                        'INNER JOIN '
-                        'daily_price AS dp '
-                        'ON sym.id = dp.symbol_id '
-                        'WHERE sym.ticker="{0}" '
-                        'ORDER BY dp.price_date ASC').format(ticker))
-        prices[ticker] = [ [date.timestamp() * 1000, float(price)]
-                           for date, price in cursor if price]
-    return prices
-
+conn = mdb.connect(config.db_host, config.db_user, config.db_pass,
+                   config.db_name, config.db_port)
 
 @app.route('/')
 def root():
@@ -87,15 +24,16 @@ def root():
 @app.route("/chart/<tickers>")
 def chart(tickers):
     """
-    This function essentialy serves the page for http://vestview.com/stock/<SYMBOL>
-    TODO: Add multiple stock functionality, make graph more interactive, and update
-    graph.html template
+    This function serves the page for http://vestview.com/chart/<symbols>
     """
     # temporary, remove duplicate tickeres
     tickers = set(tickers.split("&"))
-    views = get_wiki_views_series(tickers)
-    prices = get_daily_price_series(tickers)
-    return render_template('chart.html', prices=prices, views=views)
+    views = get_wiki_views_series(conn, tickers)
+    prices = get_daily_price_series(conn, tickers)
+    articles = get_news_articles(conn, tickers)
+
+    return render_template('chart.html', prices=prices, views=views, articles=articles)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

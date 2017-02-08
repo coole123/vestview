@@ -15,6 +15,9 @@ $(function () {
                 text: 'Daily Stock Price',
                 x: -20
             },
+            navigator: {
+                    enabled: false
+            },
             yAxis: [{ //primary axis -- stock prices
                 labels: {
                     formatter: function () {
