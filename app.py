@@ -17,7 +17,7 @@ def root():
     The data JSON obj is sent to the client side for real-time
     autocomplete data
     """
-    data = get_autocomplete_data()
+    data = get_autocomplete_data(conn)
     return render_template("search.html", autocompleteData=data)
 
 

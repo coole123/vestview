@@ -29,16 +29,24 @@ def _get_quotes(symbols):
     return json.loads(resp.text)["query"]["results"]["quote"]
 
 
-def get_autocomplete_data():
-    conn  = mdb.connect('127.0.0.1', 'sec_user', 'password', 'securities_master')
-    cursor = conn.cursor()
-    cursor.execute('SELECT ticker, name FROM symbol')
-    all_tickers = [ ticker for ticker, _ in cursor ]
-    company_names = { ticker:name for ticker, name in cursor }
+def get_autocomplete_data(conn):
+    cur = conn.cursor()
+    cur.execute('SELECT ticker, name FROM symbol')
+    all_tickers = [ ticker for ticker, _ in cur ]
+    company_names = { ticker:name for ticker, name in cur }
     quotes = _get_quotes(all_tickers)
-    return [ {'company':company_names[d['symbol']], 'ticker':d['symbol'],
-              'price':float(d['LastTradePriceOnly']), 'change': float(d['Change'])}
-              for d in quotes ]
+    allData = []
+    for d in quotes:
+        quote = {
+            'company': company_names[ d['symbol'] ],
+            'ticker': d['symbol'],
+            'price': float(d['LastTradePriceOnly']) if d['LastTradePriceOnly'] else None,
+            'change': float(d['Change']) if d['Change'] else None
+        }
+        allData.append(quote)
+
+    cur.close()
+    return allData
 
 def get_index_data():
     """
