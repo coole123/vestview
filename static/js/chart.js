@@ -87,13 +87,15 @@ $(function () {
 
     createStockChart();
 
+
     $.each(tickers, function(i, ticker){
         var navid = "#nav-" + ticker;
         var accid = "#accordion-" + ticker;
         $(navid).on("click", function(){
-            $(accid).slideToggle("fast");
+            $(accid).show().siblings("div.accordion").hide()
         });
     });
+    // all are hidden by default, so show the first tab on page open
+    $("#accordion-" + tickers[0]).show();
 
-    $("#accordion-" + tickers[0]).slideToggle("fast");
 });
